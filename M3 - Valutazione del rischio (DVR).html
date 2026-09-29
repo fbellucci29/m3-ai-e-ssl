@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M3 - Valutazione del rischio (DVR)</title>
+<style>
+  :root{
+    --bg:#eef1f5; --paper:#fff; --ink:#1f2733; --muted:#5b6673; --line:#d5dbe3;
+    --accent:#1f4e79; --accent-soft:#eaf1f8; --ok:#1a7f4b; --ok-bg:#e7f5ec;
+    --err:#c0261e; --err-bg:#fbeae9; --amber:#8a6d00; --amber-bg:#fbf3d6; --fieldbg:#fbfcfe;
+    --xls:#217346; --xls-head:#e8efe9; --xls-line:#c6c6c6; --xls-num:#f2f2f2;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.5;padding:22px 14px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:920px;margin:0 auto;}
+  .sheet{background:var(--paper);border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 6px 24px rgba(20,40,70,.08);margin-bottom:20px;}
+  .top{background:var(--accent);color:#fff;padding:18px 26px;}
+  .top .kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.85;}
+  .top h1{margin:4px 0 0;font-size:20px;font-weight:650;}
+  .body{padding:20px 26px 26px;}
+  h2.sec{font-size:15.5px;color:var(--accent);border-bottom:2px solid var(--accent-soft);padding-bottom:6px;margin:20px 0 12px;}
+  .legend{background:var(--accent-soft);border-left:4px solid var(--accent);padding:12px 15px;border-radius:6px;font-size:13.5px;margin-bottom:16px;}
+  .legend b{color:var(--accent);}
+  .ctx{border:1px solid var(--line);border-radius:9px;background:var(--fieldbg);padding:6px 14px;margin-bottom:12px;}
+  .ctx .row{display:grid;grid-template-columns:210px 1fr;gap:2px 14px;padding:7px 0;border-bottom:1px dotted var(--line);font-size:13.5px;}
+  .ctx .row:last-child{border-bottom:none;} .ctx .k{color:var(--muted);} .ctx .v{font-weight:600;}
+  @media(max-width:600px){.ctx .row{grid-template-columns:1fr;}}
+  .pg{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;}
+  .pg .fld{min-width:120px;} .pg .rbox{font-weight:700;font-size:15px;padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:#fff;}
+  .rbox.lv-alto,.rbox.lv-molto{color:var(--err);border-color:var(--err);background:var(--err-bg);}
+  .rbox.lv-medio{color:var(--amber);border-color:#e6d38a;background:var(--amber-bg);}
+  .rbox.lv-basso{color:var(--ok);border-color:#bfe3cd;background:var(--ok-bg);}
+  label.f{display:block;font-size:12.5px;font-weight:600;margin-bottom:4px;}
+  select{width:100%;padding:8px 10px;font-size:13.5px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);font-family:inherit;}
+  select:focus{outline:2px solid var(--accent);border-color:var(--accent);}
+  .mrow{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:9px;background:var(--fieldbg);display:grid;grid-template-columns:1fr 170px;gap:10px;align-items:center;}
+  .mrow .mt{font-size:13.5px;}
+  @media(max-width:600px){.mrow{grid-template-columns:1fr;}}
+  .plan{border:1px solid var(--line);border-radius:8px;padding:11px 13px;margin-bottom:10px;background:var(--fieldbg);}
+  .plan .pt{font-weight:600;font-size:13.5px;margin-bottom:8px;}
+  .plan .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media(max-width:600px){.plan .grid2{grid-template-columns:1fr;}}
+  .cell{border-radius:6px;padding:2px;}
+  .cell.correct{box-shadow:0 0 0 2px var(--ok);} .cell.wrong{box-shadow:0 0 0 2px var(--err);}
+  .fb{font-size:12px;margin-top:4px;display:none;}
+  .cell.correct .fb,.cell.wrong .fb{display:block;}
+  .cell.correct .fb{color:var(--ok);} .cell.wrong .fb{color:var(--err);}
+  .actions{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;}
+  button{font-family:inherit;font-size:14.5px;font-weight:600;border:none;border-radius:8px;padding:11px 20px;cursor:pointer;}
+  .btn-primary{background:var(--accent);color:#fff;} .btn-primary:hover{background:#173d5e;}
+  .btn-ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  .btn-xls{background:var(--xls);color:#fff;} .btn-xls:hover{background:#1a5c38;}
+  .note{font-size:13px;color:var(--muted);margin-top:10px;} .hidden{display:none;}
+  .resbox{margin-top:16px;padding:14px 16px;border:1px solid var(--line);border-radius:10px;display:none;}
+  .resbox.show{display:block;} .resbox h3{margin:0 0 6px;font-size:16px;}
+  .xlsbar{background:var(--xls);color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px 6px 0 0;margin-top:14px;}
+  .xls-scroll{overflow-x:auto;border:1px solid var(--xls-line);border-top:none;border-radius:0 0 6px 6px;}
+  table.xls{border-collapse:collapse;width:100%;font-size:12px;min-width:1050px;background:#fff;}
+  table.xls th,table.xls td{border:1px solid var(--xls-line);padding:6px 8px;text-align:left;vertical-align:top;}
+  table.xls thead th{background:var(--xls-head);font-weight:700;}
+  table.xls td .rred{color:var(--err);font-weight:800;}
+  #doc{border:1px solid var(--line);border-radius:8px;padding:24px;font-size:13.5px;}
+  #doc h3.mh{color:var(--accent);font-size:14.5px;border-bottom:1px solid var(--line);padding-bottom:4px;margin:18px 0 8px;}
+  #doc .subt{color:var(--muted);font-size:12.5px;margin:-6px 0 12px;}
+  #doc .kv{display:grid;grid-template-columns:210px 1fr;gap:2px 14px;padding:4px 0;border-bottom:1px dotted var(--line);}
+  #doc .kv .k{color:var(--muted);} #doc .kv .v{font-weight:600;}
+  #doc .redflag{color:var(--err);font-weight:800;}
+  #doc table.plan2{border-collapse:collapse;width:100%;font-size:13px;margin-top:6px;}
+  #doc table.plan2 th,#doc table.plan2 td{border:1px solid var(--line);padding:6px 9px;text-align:left;}
+  #doc table.plan2 th{background:var(--accent-soft);}
+  .stamp{display:inline-block;padding:6px 14px;border-radius:6px;font-weight:700;font-size:13px;margin-bottom:12px;color:var(--err);border:2px solid var(--err);background:var(--err-bg);}
+  .firme{margin-top:18px;font-size:13px;} .firme .row{margin:10px 0;}
+  footer{font-size:12px;color:var(--muted);text-align:center;padding:10px;}
+  @media print{ body{background:#fff;padding:0;} .no-print{display:none !important;} .sheet{border:none;box-shadow:none;} #doc{border:none;padding:0;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="sheet">
+    <div class="top">
+      <div class="kicker">Corso IA e sicurezza sul lavoro · Modulo 3 · Serious game</div>
+      <h1>Valutazione del rischio da sistema IA — riga di DVR</h1>
+    </div>
+    <div class="body">
+      <div class="legend">
+        <b>L'IA come nuovo fattore di rischio.</b> Un sistema di <b>gestione algoritmica</b> di turni e ritmi introduce
+        un <b>rischio psicosociale</b> (stress lavoro-correlato) che va valutato nel DVR come ogni altro rischio.
+        Completa la riga: <b>calcola il rischio (R = P × G)</b>, scegli le <b>misure di miglioramento</b>, assegna
+        <b>incaricati</b> e <b>tempistiche</b>.<br>
+        <span class="note">Scala P×G (1-4): R 1-3 <b>Basso</b> · 4-6 <b>Medio</b> · 7-12 <b>Alto</b> · 13-16 <b>Molto alto</b>.</span>
+      </div>
+
+      <!-- Contesto precompilato -->
+      <div class="ctx">
+        <div class="row"><span class="k">Area / Reparto</span><span class="v">Logistica — Preparazione ordini</span></div>
+        <div class="row"><span class="k">Mansioni / Postazioni</span><span class="v">Operatori di linea · Magazzinieri</span></div>
+        <div class="row"><span class="k">Tipo di IA</span><span class="v">Sistema di gestione algoritmica di turni, compiti e ritmi (assegna attività, misura i tempi, fissa gli obiettivi)</span></div>
+        <div class="row"><span class="k">Pericoli / fattori di rischio</span><span class="v">Rischio psicosociale (stress lavoro-correlato): ritmi eccessivi, perdita di autonomia, iper-monitoraggio, pressione da obiettivi, isolamento</span></div>
+        <div class="row"><span class="k">Strumenti di supporto / dati</span><span class="v">Report dell'algoritmo · indicatori (assenze +18%, turnover +25%, errori in aumento) · esiti del questionario stress lavoro-correlato</span></div>
+        <div class="row"><span class="k">Misure già attuate</span><span class="v">Informativa ai lavoratori sull'uso del sistema · valutazione dello stress lavoro-correlato avviata</span></div>
+      </div>
+
+      <form id="game">
+        <!-- A. Valutazione -->
+        <h2 class="sec">A · Valutazione del rischio (P × G = R)</h2>
+        <div class="pg">
+          <div class="fld"><label class="f">Probabilità (P)</label>
+            <div class="cell" data-correct="3"><select class="noshuffle" id="selP"><option value="">P…</option><option>1</option><option>2</option><option>3</option><option>4</option></select><div class="fb"></div></div></div>
+          <div class="fld"><label class="f">Gravità / Danno (G)</label>
+            <div class="cell" data-correct="3"><select class="noshuffle" id="selG"><option value="">G…</option><option>1</option><option>2</option><option>3</option><option>4</option></select><div class="fb"></div></div></div>
+          <div class="fld"><label class="f">R = P × G</label>
+            <div class="rbox" id="rbox">—</div></div>
+        </div>
+        <p class="note">Indizi: gli indicatori (assenze, turnover, errori) mostrano che il disagio <b>si sta già manifestando</b>; il danno riguarda la <b>salute psicofisica</b> dei lavoratori.</p>
+
+        <!-- B. Misure di miglioramento -->
+        <h2 class="sec">B · Misure di miglioramento — quali adottare?</h2>
+        <div id="mis">
+          <div class="mrow" data-correct="Adottare"><div class="mt">Fissare ritmi e carichi di lavoro sostenibili, con soglie massime</div>
+            <div class="cell"><select><option value="">—</option><option>Adottare</option><option>Non adottare</option></select><div class="fb"></div></div></div>
+          <div class="mrow" data-correct="Adottare"><div class="mt">Pianificare pause e turnazione adeguate</div>
+            <div class="cell"><select><option value="">—</option><option>Adottare</option><option>Non adottare</option></select><div class="fb"></div></div></div>
+          <div class="mrow" data-correct="Non adottare"><div class="mt">Aumentare il monitoraggio individuale per comprimere i tempi</div>
+            <div class="cell"><select><option value="">—</option><option>Adottare</option><option>Non adottare</option></select><div class="fb"></div></div></div>
+          <div class="mrow" data-correct="Adottare"><div class="mt">Restituire margini di autonomia e un canale di segnalazione</div>
+            <div class="cell"><select><option value="">—</option><option>Adottare</option><option>Non adottare</option></select><div class="fb"></div></div></div>
+          <div class="mrow" data-correct="Adottare"><div class="mt">Coinvolgere il medico competente e consultare l'RLS</div>
+            <div class="cell"><select><option value="">—</option><option>Adottare</option><option>Non adottare</option></select><div class="fb"></div></div></div>
+          <div class="mrow" data-correct="Non adottare"><div class="mt">Legare la retribuzione alla velocità (cottimo digitale)</div>
+            <div class="cell"><select><option value="">—</option><option>Adottare</option><option>Non adottare</option></select><div class="fb"></div></div></div>
+        </div>
+
+        <!-- C. Piano di attuazione -->
+        <h2 class="sec">C · Piano di attuazione — incaricati e tempistica</h2>
+        <div class="plan">
+          <div class="pt">1 · Ritmi e carichi di lavoro sostenibili</div>
+          <div class="grid2">
+            <div><label class="f">Incaricato</label>
+              <div class="cell" data-correct="Datore di lavoro con RSPP"><select><option value="">—</option><option>Datore di lavoro con RSPP</option><option>Fornitore del software</option><option>RLS</option><option>Medico competente</option></select><div class="fb"></div></div></div>
+            <div><label class="f">Tempistica</label>
+              <div class="cell" data-correct="Entro 3 mesi"><select class="noshuffle"><option value="">—</option><option>Entro 1 mese</option><option>Entro 3 mesi</option><option>Entro 6 mesi</option><option>Trimestrale</option></select><div class="fb"></div></div></div>
+          </div>
+        </div>
+        <div class="plan">
+          <div class="pt">2 · Pause e turnazione adeguate</div>
+          <div class="grid2">
+            <div><label class="f">Incaricato</label>
+              <div class="cell" data-correct="Datore di lavoro / Dirigente"><select><option value="">—</option><option>Datore di lavoro / Dirigente</option><option>Fornitore del software</option><option>RLS</option><option>Ufficio IT</option></select><div class="fb"></div></div></div>
+            <div><label class="f">Tempistica</label>
+              <div class="cell" data-correct="Entro 1 mese"><select class="noshuffle"><option value="">—</option><option>Entro 1 mese</option><option>Entro 3 mesi</option><option>Entro 6 mesi</option><option>Trimestrale</option></select><div class="fb"></div></div></div>
+          </div>
+        </div>
+        <div class="plan">
+          <div class="pt">3 · Sorveglianza sanitaria mirata sui rischi psicosociali</div>
+          <div class="grid2">
+            <div><label class="f">Incaricato</label>
+              <div class="cell" data-correct="Medico competente"><select><option value="">—</option><option>Medico competente</option><option>RSPP</option><option>Datore di lavoro</option><option>Ufficio IT</option></select><div class="fb"></div></div></div>
+            <div><label class="f">Tempistica</label>
+              <div class="cell" data-correct="Entro 3 mesi"><select class="noshuffle"><option value="">—</option><option>Entro 1 mese</option><option>Entro 3 mesi</option><option>Entro 6 mesi</option><option>Trimestrale</option></select><div class="fb"></div></div></div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn-primary" id="check">Verifica e genera la riga DVR</button>
+          <button type="button" class="btn-ghost" id="reset">Ricomincia</button>
+        </div>
+      </form>
+
+      <div class="resbox" id="result">
+        <h3 id="rtitle"></h3>
+        <div id="rscore" style="font-weight:700"></div>
+        <p id="rmsg" style="margin:8px 0 0;font-size:14px;color:var(--muted)"></p>
+        <div id="rafter" style="margin-top:12px"></div>
+      </div>
+
+      <div id="rowOut" class="hidden">
+        <div class="xlsbar">📊 registro-rischi-ia.xlsx — foglio "DVR"</div>
+        <div class="xls-scroll"><table class="xls" id="rowTable"></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scheda stampabile -->
+  <div class="sheet hidden" id="docSheet">
+    <div class="body">
+      <div id="doc"></div>
+      <div class="actions no-print">
+        <button type="button" class="btn-primary" id="printDoc">Stampa scheda</button>
+        <button type="button" class="btn-xls" id="dlDoc">Scarica scheda</button>
+        <button type="button" class="btn-ghost" id="closeDoc">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="no-print">Compilazione a scopo formativo · nessun dato viene salvato</footer>
+</div>
+
+<script>
+(function(){
+  function shuffleSelects(){
+    Array.prototype.forEach.call(document.querySelectorAll('select'),function(sel){
+      if(sel.classList.contains('noshuffle'))return;
+      var rest=Array.prototype.slice.call(sel.options).filter(function(o){return o.value!=='';});
+      for(var i=rest.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=rest[i];rest[i]=rest[j];rest[j]=t;}
+      rest.forEach(function(o){sel.removeChild(o);});
+      rest.forEach(function(o){sel.appendChild(o);});
+    });
+  }
+  shuffleSelects();
+
+  var cells=Array.prototype.slice.call(document.querySelectorAll('.cell'));
+  var selP=document.getElementById('selP'), selG=document.getElementById('selG'), rbox=document.getElementById('rbox');
+  function level(r){ if(r<=3)return['Basso','lv-basso']; if(r<=6)return['Medio','lv-medio']; if(r<=12)return['Alto','lv-alto']; return['Molto alto','lv-molto']; }
+  function updateR(){
+    var p=parseInt(selP.value,10), g=parseInt(selG.value,10);
+    if(p&&g){var r=p*g,lv=level(r);rbox.textContent='R = '+r+' — '+lv[0];rbox.className='rbox '+lv[1];}
+    else{rbox.textContent='—';rbox.className='rbox';}
+  }
+  selP.addEventListener('change',updateR); selG.addEventListener('change',updateR);
+
+  function grade(c){
+    var sel=c.querySelector('select'),want=c.getAttribute('data-correct')||c.parentElement.getAttribute('data-correct'),got=sel.value,fb=c.querySelector('.fb');
+    // per .mrow il data-correct è sul contenitore
+    if(!c.getAttribute('data-correct')&&c.closest('.mrow'))want=c.closest('.mrow').getAttribute('data-correct');
+    c.classList.remove('correct','wrong');
+    if(got===want){c.classList.add('correct');fb.textContent='✓ corretto';return true;}
+    c.classList.add('wrong');fb.textContent=got?('✗ corretto: '+want):('✗ da compilare — corretto: '+want);return false;
+  }
+
+  document.getElementById('check').addEventListener('click',function(){
+    var ok=0; cells.forEach(function(c){ if(grade(c)) ok++; });
+    var tot=cells.length;
+    var res=document.getElementById('result'); res.classList.add('show');
+    document.getElementById('rscore').textContent='Punteggio: '+ok+' / '+tot;
+    var t=document.getElementById('rtitle'), m=document.getElementById('rmsg'), after=document.getElementById('rafter');
+    after.innerHTML='';
+    if(ok===tot){
+      t.textContent='Riga di DVR completa e corretta';
+      m.innerHTML='Hai valutato il rischio (P=3 × G=3 = <b>R=9, Alto</b>), scelto le misure giuste e pianificato attuazione e responsabilità. La riga è pronta per il DVR.';
+      buildRow();
+      document.getElementById('rowOut').classList.remove('hidden');
+      var b=document.createElement('button'); b.className='btn-primary'; b.textContent='Visualizza e stampa la scheda'; b.addEventListener('click',viewDoc);
+      after.appendChild(b);
+    } else {
+      t.textContent='Riga incompleta';
+      m.innerHTML='Punteggio '+ok+'/'+tot+'. Rivedi i campi in rosso. Ricorda: P=3 (il disagio è già visibile negli indicatori) e G=3 (danno alla salute psicofisica) → R=9, <b>Alto</b>. Le misure che aumentano pressione o cottimo non riducono il rischio: lo aggravano.';
+      document.getElementById('rowOut').classList.add('hidden');
+    }
+  });
+  document.getElementById('reset').addEventListener('click',function(){
+    cells.forEach(function(c){c.classList.remove('correct','wrong');c.querySelector('select').value='';});
+    updateR(); document.getElementById('result').classList.remove('show');
+    document.getElementById('rowOut').classList.add('hidden'); document.getElementById('docSheet').classList.add('hidden');
+  });
+
+  function buildRow(){
+    var head=['Area / Reparto','Mansione','Pericoli','Strumenti di supporto','Misure attuate e valutazione','Misure di miglioramento','Incaricati','Tempistica'];
+    var html='<thead><tr>';
+    head.forEach(function(h){html+='<th>'+h+'</th>';}); html+='</tr></thead><tbody><tr>';
+    html+='<td>Logistica — Preparazione ordini</td>';
+    html+='<td>Operatori di linea, magazzinieri</td>';
+    html+='<td>Rischio psicosociale (stress lavoro-correlato): ritmi eccessivi, perdita di autonomia, iper-monitoraggio, isolamento</td>';
+    html+='<td>Report algoritmici; indicatori assenze/turnover/errori; questionario stress lavoro-correlato</td>';
+    html+='<td>Informativa ai lavoratori; valutazione stress avviata.<br><span class="rred">P=3 · G=3 · R=9 (ALTO)</span></td>';
+    html+='<td>1. Ritmi/carichi sostenibili<br>2. Pause e turnazione<br>3. Autonomia + canale di segnalazione<br>4. Sorveglianza sanitaria mirata + consultazione RLS</td>';
+    html+='<td>1. Datore + RSPP<br>2. Datore/Dirigente<br>3. Datore + RSPP<br>4. Medico competente</td>';
+    html+='<td>1. Entro 3 mesi<br>2. Entro 1 mese<br>3. Entro 3 mesi<br>4. Entro 3 mesi</td>';
+    html+='</tr></tbody>';
+    document.getElementById('rowTable').innerHTML=html;
+  }
+
+  function viewDoc(){
+    document.getElementById('doc').innerHTML = `
+      <span class="stamp">🟠 SCHEDA DI VALUTAZIONE DEL RISCHIO — RISCHIO ALTO (R = 9)</span>
+      <div class="subt">Rischio psicosociale da gestione algoritmica del lavoro · estratto di DVR</div>
+      <div class="kv"><span class="k">ID Documento</span><span class="v">DVR-IA-2026-007</span></div>
+      <div class="kv"><span class="k">Area / Reparto</span><span class="v">Logistica — Preparazione ordini</span></div>
+      <div class="kv"><span class="k">Data valutazione</span><span class="v">22/09/2026</span></div>
+      <div class="kv"><span class="k">Valutatori</span><span class="v">Datore di lavoro, RSPP, con il Medico competente e sentito l'RLS</span></div>
+
+      <h3 class="mh">1 · Contesto e pericolo</h3>
+      <div class="kv"><span class="k">Sistema IA</span><span class="v">Gestione algoritmica di turni, compiti e ritmi di lavoro.</span></div>
+      <div class="kv"><span class="k">Mansioni esposte</span><span class="v">Operatori di linea e magazzinieri.</span></div>
+      <div class="kv"><span class="k">Pericolo</span><span class="v">Rischio psicosociale: ritmi eccessivi, perdita di autonomia, iper-monitoraggio, pressione da obiettivi, isolamento.</span></div>
+
+      <h3 class="mh">2 · Valutazione del rischio</h3>
+      <div class="kv"><span class="k">Indicatori rilevati</span><span class="v">Assenze +18%, turnover +25%, errori in aumento; segnali di disagio dal questionario stress lavoro-correlato.</span></div>
+      <div class="kv"><span class="k">Probabilità (P)</span><span class="v">3 — evento probabile (il disagio è già in atto).</span></div>
+      <div class="kv"><span class="k">Gravità (G)</span><span class="v">3 — danno significativo alla salute psicofisica.</span></div>
+      <div class="kv"><span class="k">Rischio (R = P × G)</span><span class="v redflag">9 — ALTO</span></div>
+
+      <h3 class="mh">3 · Misure già attuate</h3>
+      <div class="kv"><span class="k">In essere</span><span class="v">Informativa ai lavoratori sull'uso del sistema; valutazione dello stress lavoro-correlato avviata.</span></div>
+
+      <h3 class="mh">4 · Piano di miglioramento</h3>
+      <table class="plan2">
+        <thead><tr><th>Misura</th><th>Incaricato</th><th>Tempistica</th></tr></thead>
+        <tbody>
+          <tr><td>Ritmi e carichi di lavoro sostenibili, con soglie massime</td><td>Datore di lavoro con RSPP</td><td class="redflag">Entro 3 mesi</td></tr>
+          <tr><td>Pause e turnazione adeguate</td><td>Datore di lavoro / Dirigente</td><td class="redflag">Entro 1 mese</td></tr>
+          <tr><td>Margini di autonomia e canale di segnalazione</td><td>Datore di lavoro con RSPP</td><td>Entro 3 mesi</td></tr>
+          <tr><td>Sorveglianza sanitaria mirata sui rischi psicosociali</td><td>Medico competente</td><td>Entro 3 mesi</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="mh">5 · Riesame</h3>
+      <div class="kv"><span class="k">Verifica di efficacia</span><span class="v">Rivalutazione degli indicatori e del rischio residuo dopo l'attuazione delle misure; aggiornamento del DVR.</span></div>
+      <div class="kv"><span class="k">Consultazione</span><span class="v">RLS consultato sull'introduzione del sistema e sulle misure adottate.</span></div>
+
+      <h3 class="mh">Firme</h3>
+      <div class="firme">
+        <div class="row">Datore di lavoro: ______________________  Data: ___________</div>
+        <div class="row">RSPP: ______________________  Data: ___________</div>
+        <div class="row">Medico competente: ______________________  Data: ___________</div>
+        <div class="row">RLS (per presa visione): ______________________  Data: ___________</div>
+      </div>`;
+    document.getElementById('docSheet').classList.remove('hidden');
+    document.getElementById('docSheet').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  document.getElementById('printDoc').addEventListener('click',function(){window.print();});
+  document.getElementById('closeDoc').addEventListener('click',function(){document.getElementById('docSheet').classList.add('hidden');});
+  document.getElementById('dlDoc').addEventListener('click',function(){
+    var inner=document.getElementById('doc').innerHTML;
+    var css='body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1f2733;max-width:780px;margin:24px auto;padding:0 20px;line-height:1.5;font-size:13.5px}'+
+      'h3.mh{color:#1f4e79;font-size:14.5px;border-bottom:1px solid #d5dbe3;padding-bottom:4px;margin:18px 0 8px}.subt{color:#5b6673;font-size:12.5px;margin:-6px 0 12px}'+
+      '.kv{display:grid;grid-template-columns:210px 1fr;gap:2px 14px;padding:4px 0;border-bottom:1px dotted #d5dbe3}.kv .k{color:#5b6673}.kv .v{font-weight:600}.redflag{color:#c0261e;font-weight:800}'+
+      'table.plan2{border-collapse:collapse;width:100%;font-size:13px;margin-top:6px}table.plan2 th,table.plan2 td{border:1px solid #d5dbe3;padding:6px 9px;text-align:left}table.plan2 th{background:#eaf1f8}'+
+      '.stamp{display:inline-block;padding:6px 14px;border-radius:6px;font-weight:700;font-size:13px;margin-bottom:12px;color:#c0261e;border:2px solid #c0261e;background:#fbeae9}.firme{margin-top:18px;font-size:13px}.firme .row{margin:10px 0}';
+    var html='<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Scheda valutazione rischio IA — DVR</title><style>'+css+'</style></head><body>'+inner+'</body></html>';
+    var blob=new Blob([html],{type:'text/html'});var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download='scheda-valutazione-rischio-ia.html';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  });
+})();
+</script>
+</body>
+</html>
